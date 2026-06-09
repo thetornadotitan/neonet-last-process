@@ -1,5 +1,5 @@
 import { formatTime } from "./utils.js";
-import { PERMANENT_UPGRADE_KEYS, UPGRADES, upgradeCost } from "./upgrades.js";
+import { PERMANENT_UPGRADE_KEYS, UPGRADE_KEYS, UPGRADES, RARITIES, upgradeCost, isExtraShotUpgrade } from "./upgrades.js";
 
 export class UI {
   constructor(store, audioManager) {
@@ -27,6 +27,8 @@ export class UI {
     this.closeShopButton = document.getElementById("close-shop");
     this.levelUpEl = document.getElementById("level-up");
     this.levelOptionsEl = document.getElementById("level-options");
+    this.activeUpgradesEl = document.getElementById("active-upgrades");
+    this.upgradeListEl = document.getElementById("upgrade-list");
     this.onSettingsClose = null;
     this.onShopClose = null;
     this.onShopBuy = null;
@@ -75,6 +77,7 @@ export class UI {
     this.scoreEl.textContent = "--";
     this.timeEl.textContent = "--";
     this.levelEl.textContent = "--";
+    this.activeUpgradesEl.classList.add("hidden");
     this.syncMeta();
   }
 
@@ -84,6 +87,8 @@ export class UI {
     this.scoreEl.textContent = run.score;
     this.timeEl.textContent = formatTime(run.time);
     this.levelEl.textContent = `${run.level} (${Math.floor(run.xp)}/${run.xpToNext})`;
+    this.activeUpgradesEl.classList.remove("hidden");
+    this.renderActiveUpgrades(this.store.meta, run);
     this.syncMeta();
   }
 
@@ -139,6 +144,7 @@ export class UI {
   moveShopSelection(direction) {
     this.shopSelection = (this.shopSelection + direction + PERMANENT_UPGRADE_KEYS.length) % PERMANENT_UPGRADE_KEYS.length;
     this.renderShop();
+    this.scrollShopSelectionIntoView();
   }
 
   confirmShopSelection() {
@@ -194,6 +200,7 @@ export class UI {
   moveLevelSelection(direction) {
     this.levelSelection = (this.levelSelection + direction + this.levelChoices.length) % this.levelChoices.length;
     this.renderLevelChoices();
+    this.scrollLevelSelectionIntoView();
   }
 
   confirmLevelSelection() {
@@ -222,5 +229,59 @@ export class UI {
       });
       this.levelOptionsEl.appendChild(button);
     });
+  }
+
+  renderActiveUpgrades(meta, run) {
+    this.upgradeListEl.innerHTML = "";
+    const temporary = run.temporaryUpgrades;
+    const permanent = meta.upgrades;
+
+    for (const key of UPGRADE_KEYS) {
+      const permLevel = permanent[key] || 0;
+      const tempLevel = temporary[key] || 0;
+      if (permLevel === 0 && tempLevel === 0) continue;
+
+      const upgrade = UPGRADES[key];
+      const entry = document.createElement("div");
+      entry.className = "upgrade-entry";
+      const totalLevel = permLevel + tempLevel;
+
+      if (isExtraShotUpgrade(key)) {
+        const rarityKey = run.extraShotRarities?.[key] || "common";
+        const rarity = RARITIES[rarityKey];
+        entry.style.borderColor = rarity.color + "44";
+        entry.innerHTML = `<span class="upgrade-name" style="color:${rarity.color}">${upgrade.label}</span><span class="upgrade-detail">${rarity.label} · ${upgrade.describe(tempLevel)}</span>`;
+      } else if (upgrade.permanent && tempLevel === 0) {
+        entry.innerHTML = `<span class="upgrade-name">${upgrade.label}</span><span class="upgrade-detail">Lv ${permLevel} · ${upgrade.describe(permLevel)}</span>`;
+      } else {
+        const counts = run.rarityCounts?.[key];
+        let detail = "";
+        if (counts && Object.keys(counts).length > 0) {
+          const parts = Object.entries(counts)
+            .filter(([, c]) => c > 0)
+            .map(([rKey, c]) => {
+              const r = RARITIES[rKey];
+              return `<span style="color:${r.color}">${r.label} x${c}</span>`;
+            });
+          detail = parts.join(" + ") + ` = ${upgrade.describe(totalLevel)}`;
+        } else {
+          detail = upgrade.describe(totalLevel);
+        }
+        const permPart = permLevel > 0 ? `Lv ${permLevel} + ` : "";
+        entry.innerHTML = `<span class="upgrade-name">${upgrade.label}</span><span class="upgrade-detail">${permPart}${detail}</span>`;
+      }
+
+      this.upgradeListEl.appendChild(entry);
+    }
+  }
+
+  scrollShopSelectionIntoView() {
+    const selected = this.shopListEl.querySelector(".shop-item.selected");
+    if (selected) selected.scrollIntoView({ block: "nearest" });
+  }
+
+  scrollLevelSelectionIntoView() {
+    const selected = this.levelOptionsEl.querySelector(".level-option.selected");
+    if (selected) selected.scrollIntoView({ block: "nearest" });
   }
 }

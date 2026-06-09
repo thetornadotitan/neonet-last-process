@@ -1,6 +1,9 @@
 import {
   UPGRADE_KEYS,
   damageFor,
+  damageScale,
+  enemyHealthScale,
+  enemySpeedScale,
   makeUpgradeLevels,
   maxHealthFor,
   moveSpeedFor,
@@ -8,6 +11,7 @@ import {
   regenFor,
   rollRarity,
   shotCooldownFor,
+  spawnDelayFor,
   wholeUpgradeLevel,
   xpMultiplierFor,
   isExtraShotUpgrade,
@@ -43,6 +47,7 @@ export class CombatScene {
       levelChoices: [],
       selectedExtraShots: new Set(),
       extraShotRarities: {},
+      rarityCounts: {},
       camera: { x: 0, y: 0 },
       player: {
         x: 0,
@@ -128,7 +133,7 @@ export class CombatScene {
   }
 
   updateSpawns(dt) {
-    const spawnDelay = clamp(0.9 - this.run.time * 0.008, 0.22, 0.9);
+    const spawnDelay = spawnDelayFor(this.run.time);
     this.run.spawnTimer -= dt;
     while (this.run.spawnTimer <= 0) {
       this.spawnEnemy();
@@ -159,13 +164,15 @@ export class CombatScene {
     }
 
     const fast = Math.random() < clamp(this.run.time / 95, 0.08, 0.36);
+    const healthScale = enemyHealthScale(this.run.time);
+    const speedScale = enemySpeedScale(this.run.time);
     this.run.enemies.push({
       id: this.run.nextEnemyId,
       x,
       y,
       radius: fast ? 10 : 16,
-      speed: fast ? 175 : 105,
-      health: fast ? 1 : 2,
+      speed: (fast ? 175 : 105) * speedScale,
+      health: (fast ? 1 : 2) * healthScale,
       value: fast ? 15 : 25,
       xp: fast ? 5 : 8,
       color: fast ? "#ffe15c" : "#ff2e9a"
@@ -238,10 +245,11 @@ export class CombatScene {
       vx: aim.x * 570,
       vy: aim.y * 570,
       radius: 5,
-      damage: damageFor(this.app.store.meta, this.run),
+      damage: damageFor(this.app.store.meta, this.run) * damageScale(this.run.time),
       bouncesLeft: wholeUpgradeLevel(this.app.store.meta, this.run, "projectileBounce"),
       hitEnemyIds: new Set(),
-      // Homing properties
+      maxLife: 4,
+      age: 0,
       homingStrength: homing > 0 ? homing * 0.8 : 0,
       homingRange: 500,
       targetEnemyId: null
@@ -261,7 +269,8 @@ export class CombatScene {
     for (const bullet of this.run.bullets) {
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
-      
+      bullet.age += dt;
+
       if (bullet.homingStrength > 0) {
         this.updateHoming(bullet, dt);
       }
@@ -380,6 +389,7 @@ export class CombatScene {
     bullet.vx = direction.x * 570;
     bullet.vy = direction.y * 570;
     bullet.bouncesLeft -= 1;
+    bullet.age = 0;
   }
 
   nearestBounceTarget(bullet, hitEnemy) {
@@ -464,13 +474,16 @@ export class CombatScene {
 
   chooseLevelUpgrade(choice) {
     const { key, rarity } = choice;
-    
+
     if (isExtraShotUpgrade(key)) {
       this.run.temporaryUpgrades[key] = rarity.multiplier;
       this.run.extraShotRarities[key] = rarity.key;
       this.run.selectedExtraShots.add(key);
     } else {
       this.run.temporaryUpgrades[key] += rarity.multiplier;
+      if (!this.run.rarityCounts[key]) this.run.rarityCounts[key] = {};
+      const count = this.run.rarityCounts[key][rarity.key] || 0;
+      this.run.rarityCounts[key][rarity.key] = count + 1;
     }
     
     const oldMax = this.run.player.maxHealth;
@@ -516,6 +529,7 @@ export class CombatScene {
     const maxDist = Math.max(width, height) * 1.75;
     this.run.bullets = this.run.bullets.filter((bullet) => {
       if (bullet.expired) return false;
+      if (bullet.age >= bullet.maxLife) return false;
       const dx = bullet.x - this.run.player.x;
       const dy = bullet.y - this.run.player.y;
       return dx * dx + dy * dy <= maxDist * maxDist;

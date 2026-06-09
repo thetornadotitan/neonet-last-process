@@ -1,3 +1,5 @@
+import { clamp } from "./utils.js";
+
 export const PERMANENT_UPGRADE_KEYS = [
   "maxHealth",
   "healthRegen",
@@ -261,8 +263,30 @@ export const EXTRA_SHOT_UPGRADES = {
   frontShot: { label: "Front Shot", category: "extraShot" },
   diagonalShot: { label: "Diagonal Shot", category: "extraShot" },
   reverseShot: { label: "Reverse Shot", category: "extraShot" },
-  homing: { label: "Homing", category: "extraShot" }
+  homing: { label: "Homing", category: "extraShot" },
+  projectileBounce: { label: "Bounce", category: "extraShot" }
 };
+
+export function difficultyFor(time) {
+  if (time <= 0) return 0;
+  return Math.log2(1 + time / 600);
+}
+
+export function enemyHealthScale(time) {
+  return 1 + difficultyFor(time) * 3;
+}
+
+export function damageScale(time) {
+  return 1 + difficultyFor(time) * 1.5;
+}
+
+export function enemySpeedScale(time) {
+  return 1 + clamp(difficultyFor(time) * 0.4, 0, 1.2);
+}
+
+export function spawnDelayFor(time) {
+  return clamp(0.9 - time * 0.012, 0.15, 0.9);
+}
 
 export function isExtraShotUpgrade(key) {
   return key in EXTRA_SHOT_UPGRADES;

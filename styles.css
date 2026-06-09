@@ -301,6 +301,96 @@ canvas {
   white-space: nowrap;
 }
 
+.active-upgrades {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 220px;
+  max-height: calc(100vh - 32px);
+  padding: 12px;
+  border: 1px solid rgba(156, 246, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(5, 8, 20, 0.68);
+  box-shadow: 0 0 24px rgba(0, 224, 255, 0.08);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  overflow-y: auto;
+}
+
+.active-upgrades.hidden {
+  display: none;
+}
+
+.active-upgrades h3 {
+  margin: 0 0 8px;
+  color: #a6bdc8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upgrade-list {
+  display: grid;
+  gap: 4px;
+}
+
+.upgrade-entry {
+  padding: 5px 8px;
+  border: 1px solid rgba(156, 246, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 12px;
+}
+
+.upgrade-entry .upgrade-name {
+  color: #dceff5;
+  font-weight: 700;
+}
+
+.upgrade-entry .upgrade-detail {
+  color: #8ea8b6;
+  font-size: 11px;
+}
+
+.shop-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(520px, calc(100vh - 64px));
+}
+
+.shop-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.level-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(480px, calc(100vh - 64px));
+}
+
+.level-options {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.shop-list::-webkit-scrollbar,
+.level-options::-webkit-scrollbar,
+.upgrade-list::-webkit-scrollbar,
+.active-upgrades::-webkit-scrollbar {
+  width: 4px;
+}
+
+.shop-list::-webkit-scrollbar-thumb,
+.level-options::-webkit-scrollbar-thumb,
+.upgrade-list::-webkit-scrollbar-thumb,
+.active-upgrades::-webkit-scrollbar-thumb {
+  background: rgba(0, 224, 255, 0.3);
+  border-radius: 2px;
+}
+
 @media (max-width: 620px) {
   .hud {
     right: 10px;
