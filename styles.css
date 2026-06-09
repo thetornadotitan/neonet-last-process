@@ -238,6 +238,8 @@ canvas {
 .level-options {
   display: grid;
   gap: 8px;
+  padding: 4px 0;
+  scrollbar-gutter: stable;
 }
 
 .shop-item,
@@ -305,7 +307,7 @@ canvas {
   position: fixed;
   top: 16px;
   right: 16px;
-  width: 220px;
+  width: 260px;
   max-height: calc(100vh - 32px);
   padding: 12px;
   border: 1px solid rgba(156, 246, 255, 0.2);
@@ -314,7 +316,9 @@ canvas {
   box-shadow: 0 0 24px rgba(0, 224, 255, 0.08);
   backdrop-filter: blur(10px);
   pointer-events: none;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .active-upgrades.hidden {
@@ -332,30 +336,44 @@ canvas {
 .upgrade-list {
   display: grid;
   gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  pointer-events: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .upgrade-entry {
-  padding: 5px 8px;
+  padding: 6px 8px;
   border: 1px solid rgba(156, 246, 255, 0.1);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.035);
   font-size: 12px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .upgrade-entry .upgrade-name {
   color: #dceff5;
   font-weight: 700;
+  font-size: 12px;
 }
 
 .upgrade-entry .upgrade-detail {
   color: #8ea8b6;
   font-size: 11px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .shop-panel {
   display: flex;
   flex-direction: column;
   max-height: min(520px, calc(100vh - 64px));
+  min-height: min(360px, calc(100vh - 64px));
 }
 
 .shop-list {
@@ -368,6 +386,7 @@ canvas {
   display: flex;
   flex-direction: column;
   max-height: min(480px, calc(100vh - 64px));
+  min-height: min(320px, calc(100vh - 64px));
 }
 
 .level-options {
@@ -378,15 +397,13 @@ canvas {
 
 .shop-list::-webkit-scrollbar,
 .level-options::-webkit-scrollbar,
-.upgrade-list::-webkit-scrollbar,
-.active-upgrades::-webkit-scrollbar {
+.upgrade-list::-webkit-scrollbar {
   width: 4px;
 }
 
 .shop-list::-webkit-scrollbar-thumb,
 .level-options::-webkit-scrollbar-thumb,
-.upgrade-list::-webkit-scrollbar-thumb,
-.active-upgrades::-webkit-scrollbar-thumb {
+.upgrade-list::-webkit-scrollbar-thumb {
   background: rgba(0, 224, 255, 0.3);
   border-radius: 2px;
 }
@@ -407,5 +424,12 @@ canvas {
 
   .stat strong {
     font-size: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .active-upgrades {
+    width: calc(100vw - 32px);
+    right: 16px;
   }
 }

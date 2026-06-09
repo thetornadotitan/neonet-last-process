@@ -104,10 +104,15 @@ export class CombatScene {
     this.combatResolver.resolve(this.run, this.app.store.meta, (x, y, color, amount) => this.progressionSystem.burst(this.run, x, y, color, amount), (bullet, enemy) => this.weaponSystem.resolveBulletBounce(this.run, bullet, enemy));
     if (this.run.player.health <= 0 && this.run.state === "running") {
       this.finishRun();
+      return;
     }
     this.progressionSystem.collectXp(this.run, this.app.store.meta, dt);
     this.progressionSystem.prune(this.run, this.app.viewport);
     this.app.ui.setCombat(this.run);
+
+    if (this.progressionSystem.checkLevelUp(this.run)) {
+      this.openLevelUp();
+    }
   }
 
   updateCamera() {
@@ -130,6 +135,12 @@ export class CombatScene {
     this.run.state = "running";
     this.app.ui.closeLevelUp();
     this.app.ui.setCombat(this.run);
+  }
+
+  openLevelUp() {
+    this.run.state = "levelup";
+    const choices = this.progressionSystem.randomUpgradeChoices(this.run);
+    this.app.ui.openLevelUp(choices);
   }
 
   finishRun() {

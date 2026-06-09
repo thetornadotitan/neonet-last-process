@@ -20,20 +20,21 @@ export class ProgressionSystem {
         gem.y += direction.y * speed * dt;
       }
 
-      if (distanceSquared(player, gem) <= collectRadius * collectRadius) {
-        gem.collected = true;
-        this.addXp(run, meta, gem.value);
+        if (distanceSquared(player, gem) <= collectRadius * collectRadius) {
+          gem.collected = true;
+          run.xp += gem.value * xpMultiplierFor(meta, run);
+        }
       }
-    }
   }
 
-  addXp(run, meta, value) {
-    run.xp += value * xpMultiplierFor(meta, run);
-    while (run.xp >= run.xpToNext && run.state === "running") {
+  checkLevelUp(run) {
+    if (run.xp >= run.xpToNext && run.state === "running") {
       run.xp -= run.xpToNext;
       run.level += 1;
       run.xpToNext = Math.floor(PROGRESSION.xpBase.value * run.level * PROGRESSION.xpLevelMultiplier.value);
+      return true;
     }
+    return false;
   }
 
   randomUpgradeChoices(run) {
