@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Neon Auto-Shooter</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <canvas id="game" aria-label="Neon auto-shooter game canvas"></canvas>
+
+    <div class="hud" aria-live="polite">
+      <div class="stat">
+        <span>Area</span>
+        <strong id="area">Hub</strong>
+      </div>
+      <div class="stat">
+        <span>Diamonds</span>
+        <strong id="diamonds">0</strong>
+      </div>
+      <div class="stat">
+        <span>Health</span>
+        <strong id="health">100</strong>
+      </div>
+      <div class="stat">
+        <span>Score</span>
+        <strong id="score">0</strong>
+      </div>
+      <div class="stat">
+        <span>Time</span>
+        <strong id="time">0:00</strong>
+      </div>
+      <div class="stat">
+        <span>Level</span>
+        <strong id="level">--</strong>
+      </div>
+    </div>
+
+    <div id="message" class="message hidden">
+      <h1 id="message-title">Paused</h1>
+      <p id="message-copy">Press P to resume</p>
+    </div>
+
+    <div id="prompt" class="prompt hidden"></div>
+
+    <div id="settings" class="settings hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-panel">
+        <h2 id="settings-title">Settings</h2>
+        <label class="setting-row">
+          <span>Screen shake</span>
+          <input id="screen-shake" type="checkbox" checked>
+        </label>
+        <label class="setting-row">
+          <span>Music Volume</span>
+          <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.5">
+        </label>
+        <label class="setting-row">
+          <span>Mute Music</span>
+          <input id="music-mute" type="checkbox">
+        </label>
+        <div class="setting-row">
+          <span>Difficulty</span>
+          <strong id="difficulty">Normal</strong>
+        </div>
+        <button id="close-settings" type="button">Close</button>
+      </div>
+    </div>
+
+    <div id="shop" class="settings hidden" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+      <div class="settings-panel shop-panel">
+        <h2 id="shop-title">Diamond Shop</h2>
+        <div id="shop-message" class="shop-message"></div>
+        <div id="shop-list" class="shop-list"></div>
+        <button id="close-shop" type="button">Close</button>
+      </div>
+    </div>
+
+    <div id="level-up" class="settings hidden" role="dialog" aria-modal="true" aria-labelledby="level-up-title">
+      <div class="settings-panel level-panel">
+        <h2 id="level-up-title">Level Up</h2>
+        <p class="level-copy">Choose a temporary boost for this run.</p>
+        <div id="level-options" class="level-options"></div>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
