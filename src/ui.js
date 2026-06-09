@@ -1,5 +1,5 @@
 import { formatTime } from "./utils.js";
-import { PERMANENT_UPGRADE_KEYS, UPGRADE_KEYS, UPGRADES, RARITIES, upgradeCost, isExtraShotUpgrade } from "./upgrades.js";
+import { PERMANENT_UPGRADE_KEYS, UPGRADE_KEYS, UPGRADES, RARITIES, upgradeCost, isExtraShotUpgrade } from "./upgrades/index.js";
 
 export class UI {
   constructor(store, audioManager) {

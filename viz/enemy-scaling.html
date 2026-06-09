@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enemy Scaling - Balance Viz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="viz.css">
+</head>
+<body>
+  <a class="back-link" href="index.html">&larr; Back</a>
+  <h1 class="page-title">Enemy Scaling</h1>
+  <div class="layout">
+    <div class="sidebar" id="controls">
+      <h3>Normal Enemy</h3>
+      <div id="normal-sliders"></div>
+      <h3>Fast Enemy</h3>
+      <div id="fast-sliders"></div>
+      <h3>Spawn Behavior</h3>
+      <div id="spawn-sliders"></div>
+    </div>
+    <div class="chart-area">
+      <canvas id="chart1"></canvas>
+      <canvas id="chart2" style="margin-top: 24px;"></canvas>
+    </div>
+  </div>
+  <script type="module">
+import { loadConfigs, getConfigValue, setConfigValue, createSlider, createCopyButton, generateConfigSnippet, saveToUrl, loadFromUrl, CHART_COLORS } from "./vizShared.js";
+
+const configs = await loadConfigs();
+
+const normalSliders = document.getElementById("normal-sliders");
+const fastSliders = document.getElementById("fast-sliders");
+const spawnSliders = document.getElementById("spawn-sliders");
+
+const NORMAL_PATHS = [
+  { path: "ENEMY_TYPES.0.radius", label: "Radius", min: 8, max: 30, step: 1 },
+  { path: "ENEMY_TYPES.0.speed", label: "Speed", min: 50, max: 200, step: 5 },
+  { path: "ENEMY_TYPES.0.health", label: "Health", min: 1, max: 10, step: 1 },
+  { path: "ENEMY_TYPES.0.scoreValue", label: "Score Value", min: 5, max: 50, step: 5 },
+  { path: "ENEMY_TYPES.0.xpValue", label: "XP Value", min: 2, max: 20, step: 1 }
+];
+
+const FAST_PATHS = [
+  { path: "ENEMY_TYPES.1.radius", label: "Radius", min: 5, max: 20, step: 1 },
+  { path: "ENEMY_TYPES.1.speed", label: "Speed", min: 100, max: 300, step: 5 },
+  { path: "ENEMY_TYPES.1.health", label: "Health", min: 1, max: 5, step: 1 },
+  { path: "ENEMY_TYPES.1.scoreValue", label: "Score Value", min: 5, max: 30, step: 5 },
+  { path: "ENEMY_TYPES.1.xpValue", label: "XP Value", min: 2, max: 15, step: 1 }
+];
+
+const SPAWN_PATHS = [
+  { path: "ENEMIES.fastChanceRampRate", label: "Fast Ramp Rate", min: 30, max: 200, step: 5 },
+  { path: "ENEMIES.fastChanceMin", label: "Fast Chance Min", min: 0, max: 0.2, step: 0.01 },
+  { path: "ENEMIES.fastChanceMax", label: "Fast Chance Max", min: 0.1, max: 0.6, step: 0.02 }
+];
+
+const ALL_PATHS = [...NORMAL_PATHS, ...FAST_PATHS, ...SPAWN_PATHS].map(s => s.path);
+
+loadFromUrl(configs, ALL_PATHS);
+
+function onSliderChange(path, v) {
+  setConfigValue(configs, path, v);
+  saveToUrl(configs, ALL_PATHS);
+  updateCharts();
+}
+
+for (const s of NORMAL_PATHS) {
+  createSlider(normalSliders, s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+}
+for (const s of FAST_PATHS) {
+  createSlider(fastSliders, s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+}
+for (const s of SPAWN_PATHS) {
+  createSlider(spawnSliders, s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+}
+
+createCopyButton(document.getElementById("controls"), () => generateConfigSnippet(configs, ALL_PATHS));
+
+const timeLabels = Array.from({ length: 60 }, (_, i) => i * 10);
+
+const ctx1 = document.getElementById("chart1").getContext("2d");
+const chart1 = new Chart(ctx1, {
+  type: "bar",
+  data: {
+    labels: ["Radius", "Speed", "Health", "Score", "XP"],
+    datasets: [
+      { label: "Normal", data: [], backgroundColor: CHART_COLORS.pink + "88", borderColor: CHART_COLORS.pink, borderWidth: 1 },
+      { label: "Fast", data: [], backgroundColor: CHART_COLORS.yellow + "88", borderColor: CHART_COLORS.yellow, borderWidth: 1 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Enemy Type Comparison", color: "#8899aa" } },
+    scales: {
+      x: { ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+      y: { ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+    }
+  }
+});
+
+const ctx2 = document.getElementById("chart2").getContext("2d");
+const chart2 = new Chart(ctx2, {
+  type: "line",
+  data: {
+    labels: timeLabels.map(t => `${t}s`),
+    datasets: [
+      { label: "Fast Enemy Chance", data: [], borderColor: CHART_COLORS.yellow, fill: true, backgroundColor: CHART_COLORS.yellow + "22", tension: 0.3 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Fast Enemy Probability Over Time", color: "#8899aa" } },
+    scales: {
+      x: { title: { display: true, text: "Time (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+      y: { title: { display: true, text: "Probability", color: "#8899aa" }, min: 0, max: 0.6, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+    }
+  }
+});
+
+function updateCharts() {
+  const normalVals = NORMAL_PATHS.map(s => getConfigValue(configs, s.path));
+  const fastVals = FAST_PATHS.map(s => getConfigValue(configs, s.path));
+
+  chart1.data.datasets[0].data = normalVals;
+  chart1.data.datasets[1].data = fastVals;
+  chart1.update("none");
+
+  const rampRate = getConfigValue(configs, "ENEMIES.fastChanceRampRate");
+  const minChance = getConfigValue(configs, "ENEMIES.fastChanceMin");
+  const maxChance = getConfigValue(configs, "ENEMIES.fastChanceMax");
+  chart2.data.datasets[0].data = timeLabels.map(t => Math.min(maxChance, Math.max(minChance, t / rampRate)));
+  chart2.update("none");
+}
+
+    updateCharts();
+  </script>
+</body>
+</html>

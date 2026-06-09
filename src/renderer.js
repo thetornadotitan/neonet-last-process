@@ -1,17 +1,18 @@
 import { clamp, TWO_PI } from "./utils.js";
+import { CAMERA } from "./configs/index.js";
 
 export function clear(ctx, width, height) {
   ctx.fillStyle = "#050610";
   ctx.fillRect(0, 0, width, height);
 }
 
-export function drawGrid(ctx, width, height, time, alpha = 0.24) {
+export function drawGrid(ctx, width, height, time, alpha = CAMERA.gridAlpha.value) {
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.strokeStyle = "#1a8ea3";
+  ctx.strokeStyle = CAMERA.gridColor;
   ctx.lineWidth = 1;
-  const spacing = 42;
-  const offset = (time * 18) % spacing;
+  const spacing = CAMERA.gridSpacing.value;
+  const offset = (time * CAMERA.gridScrollSpeed.value) % spacing;
 
   for (let x = -spacing + offset; x < width + spacing; x += spacing) {
     ctx.beginPath();

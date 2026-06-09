@@ -1,4 +1,4 @@
-import { PERMANENT_UPGRADE_KEYS, makeUpgradeLevels, upgradeCost } from "./upgrades.js";
+import { PERMANENT_UPGRADE_KEYS, makeUpgradeLevels, upgradeCost } from "./upgrades/index.js";
 
 const STORAGE_KEY = "neonAutoShooter.meta.v1";
 

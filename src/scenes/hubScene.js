@@ -1,12 +1,13 @@
 import { clamp, distanceSquared } from "../utils.js";
 import { clear, drawGlowCircle, drawGrid, drawLabel, drawNeonRect } from "../renderer.js";
+import { PLAYER, HUB } from "../configs/index.js";
 
 const ROOM = {
-  width: 760,
-  height: 460
+  width: HUB.roomWidth.value,
+  height: HUB.roomHeight.value
 };
 
-const INTERACT_DISTANCE = 74;
+const INTERACT_DISTANCE = HUB.interactDistance.value;
 
 export class HubScene {
   constructor(app) {
@@ -14,8 +15,8 @@ export class HubScene {
     this.player = {
       x: 0,
       y: 0,
-      radius: 15,
-      speed: 250
+      radius: PLAYER.radius.value,
+      speed: PLAYER.baseSpeed.value
     };
     this.time = 0;
     this.stations = [];
@@ -24,7 +25,7 @@ export class HubScene {
   enter() {
     this.layoutRoom();
     this.player.x = this.room.x + this.room.width / 2;
-    this.player.y = this.room.y + this.room.height / 2 + 80;
+    this.player.y = this.room.y + this.room.height / 2 + HUB.playerSpawnOffset.value;
     this.app.ui.setHub();
     this.app.ui.setMessage(null);
     this.app.ui.closeSettings();
@@ -52,8 +53,8 @@ export class HubScene {
       y: this.player.y - this.room.y
     };
     this.layoutRoom();
-    this.player.x = clamp(this.room.x + previousCenter.x, this.room.x + 28, this.room.x + this.room.width - 28);
-    this.player.y = clamp(this.room.y + previousCenter.y, this.room.y + 28, this.room.y + this.room.height - 28);
+    this.player.x = clamp(this.room.x + previousCenter.x, this.room.x + HUB.boundaryPadding.value, this.room.x + this.room.width - HUB.boundaryPadding.value);
+    this.player.y = clamp(this.room.y + previousCenter.y, this.room.y + HUB.boundaryPadding.value, this.room.y + this.room.height - HUB.boundaryPadding.value);
   }
 
   layoutRoom() {
@@ -73,24 +74,24 @@ export class HubScene {
         id: "start",
         label: "Start Level",
         prompt: "Press E / A to start level",
-        x: this.room.x + this.room.width * 0.28,
-        y: this.room.y + 116,
+        x: this.room.x + this.room.width * HUB.stationPositions[0].x,
+        y: this.room.y + HUB.stationPositions[0].y,
         color: "#00e0ff"
       },
       {
         id: "settings",
         label: "Settings",
         prompt: "Press E / A for settings",
-        x: this.room.x + this.room.width * 0.5,
-        y: this.room.y + 116,
+        x: this.room.x + this.room.width * HUB.stationPositions[1].x,
+        y: this.room.y + HUB.stationPositions[1].y,
         color: "#ffe15c"
       },
       {
         id: "shop",
         label: "Shop",
         prompt: "Press E / A for shop",
-        x: this.room.x + this.room.width * 0.72,
-        y: this.room.y + 116,
+        x: this.room.x + this.room.width * HUB.stationPositions[2].x,
+        y: this.room.y + HUB.stationPositions[2].y,
         color: "#52ff94"
       }
     ];
@@ -124,8 +125,8 @@ export class HubScene {
     }
 
     const movement = this.app.input.movementVector();
-    this.player.x = clamp(this.player.x + movement.x * this.player.speed * dt, this.room.x + 28, this.room.x + this.room.width - 28);
-    this.player.y = clamp(this.player.y + movement.y * this.player.speed * dt, this.room.y + 28, this.room.y + this.room.height - 28);
+    this.player.x = clamp(this.player.x + movement.x * this.player.speed * dt, this.room.x + HUB.boundaryPadding.value, this.room.x + this.room.width - HUB.boundaryPadding.value);
+    this.player.y = clamp(this.player.y + movement.y * this.player.speed * dt, this.room.y + HUB.boundaryPadding.value, this.room.y + this.room.height - HUB.boundaryPadding.value);
 
     const station = this.nearestStation();
     this.app.ui.setPrompt(station ? station.prompt : "");

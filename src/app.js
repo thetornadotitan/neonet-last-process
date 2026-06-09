@@ -3,7 +3,8 @@ import { Store } from "./store.js";
 import { UI } from "./ui.js";
 import { AudioManager } from "./audio.js";
 import { HubScene } from "./scenes/hubScene.js";
-import { CombatScene } from "./scenes/combatScene.js";
+import { CombatScene } from "./scenes/combat/CombatScene.js";
+import { ENGINE } from "./configs/index.js";
 
 export class App {
   constructor(canvas) {
@@ -50,7 +51,7 @@ export class App {
   }
 
   frame(now) {
-    const dt = Math.min((now - this.lastFrame) / 1000, 0.033);
+    const dt = Math.min((now - this.lastFrame) / 1000, ENGINE.maxDeltaTime.value);
     this.lastFrame = now;
     this.input.updateGamepads();
     this.scene.update(dt);

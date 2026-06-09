@@ -1,4 +1,4 @@
-import { clamp } from "./utils.js";
+import { UPGRADE_VALUES, RARITY_TIERS } from "../configs/index.js";
 
 export const PERMANENT_UPGRADE_KEYS = [
   "maxHealth",
@@ -21,51 +21,24 @@ export const COMBAT_ONLY_UPGRADE_KEYS = [
 
 export const UPGRADE_KEYS = [...PERMANENT_UPGRADE_KEYS, ...COMBAT_ONLY_UPGRADE_KEYS];
 
-export const RARITIES = {
-  common: {
-    key: "common",
-    label: "Common",
-    multiplier: 1,
-    color: "#00e0ff",
-    weight: 58
-  },
-  uncommon: {
-    key: "uncommon",
-    label: "Uncommon",
-    multiplier: 1.25,
-    color: "#52ff94",
-    weight: 24
-  },
-  rare: {
-    key: "rare",
-    label: "Rare",
-    multiplier: 1.5,
-    color: "#b967ff",
-    weight: 12
-  },
-  legendary: {
-    key: "legendary",
-    label: "Legendary",
-    multiplier: 2,
-    color: "#ffe15c",
-    weight: 5
-  },
-  mythic: {
-    key: "mythic",
-    label: "Mythic",
-    multiplier: 3,
-    color: "#ff8a2a",
-    weight: 1
-  }
-};
+export const RARITIES = {};
+for (const tier of RARITY_TIERS) {
+  RARITIES[tier.key] = {
+    key: tier.key,
+    label: tier.label,
+    multiplier: tier.multiplier.value,
+    color: tier.color,
+    weight: tier.weight.value
+  };
+}
 
 export const UPGRADES = {
   maxHealth: {
     key: "maxHealth",
     label: "Max Health",
-    baseCost: 10,
+    baseCost: UPGRADE_VALUES.maxHealth.baseCost.value,
     unit: "+20 health",
-    effectPerLevel: 20,
+    effectPerLevel: UPGRADE_VALUES.maxHealth.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel)} max health`;
@@ -74,9 +47,9 @@ export const UPGRADES = {
   healthRegen: {
     key: "healthRegen",
     label: "Health Regen",
-    baseCost: 12,
+    baseCost: UPGRADE_VALUES.healthRegen.baseCost.value,
     unit: "+0.25/sec",
-    effectPerLevel: 0.25,
+    effectPerLevel: UPGRADE_VALUES.healthRegen.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${(level * this.effectPerLevel).toFixed(2)} health/sec`;
@@ -85,9 +58,9 @@ export const UPGRADES = {
   fireRate: {
     key: "fireRate",
     label: "Fire Rate",
-    baseCost: 15,
+    baseCost: UPGRADE_VALUES.fireRate.baseCost.value,
     unit: "+8%",
-    effectPerLevel: 0.08,
+    effectPerLevel: UPGRADE_VALUES.fireRate.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel * 100)}% fire rate`;
@@ -96,9 +69,9 @@ export const UPGRADES = {
   xpGain: {
     key: "xpGain",
     label: "XP Gain",
-    baseCost: 10,
+    baseCost: UPGRADE_VALUES.xpGain.baseCost.value,
     unit: "+10%",
-    effectPerLevel: 0.1,
+    effectPerLevel: UPGRADE_VALUES.xpGain.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel * 100)}% XP`;
@@ -107,9 +80,9 @@ export const UPGRADES = {
   pickupRange: {
     key: "pickupRange",
     label: "Pickup Range",
-    baseCost: 10,
+    baseCost: UPGRADE_VALUES.pickupRange.baseCost.value,
     unit: "+18 range",
-    effectPerLevel: 18,
+    effectPerLevel: UPGRADE_VALUES.pickupRange.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel)} pickup range`;
@@ -118,9 +91,9 @@ export const UPGRADES = {
   damage: {
     key: "damage",
     label: "Damage",
-    baseCost: 14,
+    baseCost: UPGRADE_VALUES.damage.baseCost.value,
     unit: "+20%",
-    effectPerLevel: 0.2,
+    effectPerLevel: UPGRADE_VALUES.damage.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel * 100)}% damage`;
@@ -129,9 +102,9 @@ export const UPGRADES = {
   moveSpeed: {
     key: "moveSpeed",
     label: "Move Speed",
-    baseCost: 12,
+    baseCost: UPGRADE_VALUES.moveSpeed.baseCost.value,
     unit: "+7%",
-    effectPerLevel: 0.07,
+    effectPerLevel: UPGRADE_VALUES.moveSpeed.effectPerLevel.value,
     permanent: true,
     describe(level) {
       return `+${Math.round(level * this.effectPerLevel * 100)}% move speed`;
@@ -218,7 +191,16 @@ export function rollRarity() {
 }
 
 export function upgradeCost(key, level) {
-  return UPGRADES[key].baseCost * (level + 1);
+  const config = UPGRADE_VALUES[key];
+  if (!config) return UPGRADES[key].baseCost * (level + 1);
+  const formula = config.costFormula || "linear";
+  const base = config.baseCost.value;
+  if (formula === "exponential") {
+    const rate = config.costFormulaParams?.rate ?? 1.5;
+    return Math.floor(base * Math.pow(rate, level));
+  }
+  const coeff = config.costFormulaParams?.coefficient ?? 1;
+  return Math.floor(base * (level + 1) * coeff);
 }
 
 export function totalUpgradeLevel(meta, run, key) {
@@ -227,88 +209,4 @@ export function totalUpgradeLevel(meta, run, key) {
 
 export function wholeUpgradeLevel(meta, run, key) {
   return Math.floor(totalUpgradeLevel(meta, run, key));
-}
-
-export function maxHealthFor(meta, run) {
-  return 100 + totalUpgradeLevel(meta, run, "maxHealth") * UPGRADES.maxHealth.effectPerLevel;
-}
-
-export function regenFor(meta, run) {
-  return totalUpgradeLevel(meta, run, "healthRegen") * UPGRADES.healthRegen.effectPerLevel;
-}
-
-export function shotCooldownFor(meta, run) {
-  const fireRateBonus = totalUpgradeLevel(meta, run, "fireRate") * UPGRADES.fireRate.effectPerLevel;
-  return 0.26 / (1 + fireRateBonus);
-}
-
-export function xpMultiplierFor(meta, run) {
-  return 1 + totalUpgradeLevel(meta, run, "xpGain") * UPGRADES.xpGain.effectPerLevel;
-}
-
-export function pickupRangeFor(meta, run) {
-  return 145 + totalUpgradeLevel(meta, run, "pickupRange") * UPGRADES.pickupRange.effectPerLevel;
-}
-
-export function damageFor(meta, run) {
-  return 1 * (1 + totalUpgradeLevel(meta, run, "damage") * UPGRADES.damage.effectPerLevel);
-}
-
-export function moveSpeedFor(meta, run) {
-  return 260 * (1 + totalUpgradeLevel(meta, run, "moveSpeed") * UPGRADES.moveSpeed.effectPerLevel);
-}
-
-export const EXTRA_SHOT_UPGRADES = {
-  multishot: { label: "Side Shot", category: "extraShot" },
-  frontShot: { label: "Front Shot", category: "extraShot" },
-  diagonalShot: { label: "Diagonal Shot", category: "extraShot" },
-  reverseShot: { label: "Reverse Shot", category: "extraShot" },
-  homing: { label: "Homing", category: "extraShot" },
-  projectileBounce: { label: "Bounce", category: "extraShot" }
-};
-
-export function difficultyFor(time) {
-  if (time <= 0) return 0;
-  return Math.log2(1 + time / 600);
-}
-
-export function enemyHealthScale(time) {
-  return 1 + difficultyFor(time) * 3;
-}
-
-export function damageScale(time) {
-  return 1 + difficultyFor(time) * 1.5;
-}
-
-export function enemySpeedScale(time) {
-  return 1 + clamp(difficultyFor(time) * 0.4, 0, 1.2);
-}
-
-export function spawnDelayFor(time) {
-  return clamp(0.9 - time * 0.012, 0.15, 0.9);
-}
-
-export function isExtraShotUpgrade(key) {
-  return key in EXTRA_SHOT_UPGRADES;
-}
-
-export function getSelectedExtraShots(run) {
-  return run.selectedExtraShots || new Set();
-}
-
-export function getHighestExtraShotRarity(run, key) {
-  if (!isExtraShotUpgrade(key)) return 0;
-  const rarityKey = run.extraShotRarities?.[key];
-  if (!rarityKey) return 0;
-  return RARITIES[rarityKey]?.multiplier || 0;
-}
-
-export function filterUpgradeChoices(choices, run) {
-  const selected = getSelectedExtraShots(run);
-  return choices.filter(choice => {
-    if (!isExtraShotUpgrade(choice.key)) return true;
-    if (!selected.has(choice.key)) return true;
-    const currentHighestMultiplier = getHighestExtraShotRarity(run, choice.key);
-    return choice.rarity.multiplier > currentHighestMultiplier;
-  });
 }

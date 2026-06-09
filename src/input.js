@@ -1,4 +1,5 @@
 import { normalize } from "./utils.js";
+import { ENGINE } from "./configs/index.js";
 
 const PREVENT_DEFAULT_KEYS = new Set([
   "arrowup",
@@ -50,7 +51,7 @@ export class Input {
     this.actionsPressed = new Set();
     this.previousGamepadButtons = new Set();
     this.previousAxisActions = new Set();
-    this.deadzone = 0.24;
+    this.deadzone = ENGINE.gamepadDeadzone.value;
 
     window.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
@@ -124,17 +125,17 @@ export class Input {
   addAxisAction(value, negativeAction, positiveAction) {
     const negativeIndex = `axis:${negativeAction}`;
     const positiveIndex = `axis:${positiveAction}`;
-    if (value < -0.62 && !this.previousAxisActions.has(negativeIndex)) {
+    if (value < -ENGINE.gamepadTriggerThreshold.value && !this.previousAxisActions.has(negativeIndex)) {
       this.actionsPressed.add(negativeAction);
       this.previousAxisActions.add(negativeIndex);
-    } else if (value >= -0.4) {
+    } else if (value >= -ENGINE.gamepadReleaseThreshold.value) {
       this.previousAxisActions.delete(negativeIndex);
     }
 
-    if (value > 0.62 && !this.previousAxisActions.has(positiveIndex)) {
+    if (value > ENGINE.gamepadTriggerThreshold.value && !this.previousAxisActions.has(positiveIndex)) {
       this.actionsPressed.add(positiveAction);
       this.previousAxisActions.add(positiveIndex);
-    } else if (value <= 0.4) {
+    } else if (value <= ENGINE.gamepadReleaseThreshold.value) {
       this.previousAxisActions.delete(positiveIndex);
     }
   }

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upgrade Scaling - Balance Viz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="viz.css">
+</head>
+<body>
+  <a class="back-link" href="index.html">&larr; Back</a>
+  <h1 class="page-title">Upgrade Scaling</h1>
+  <div class="layout">
+    <div class="sidebar" id="controls">
+      <h3>Cost Formula</h3>
+      <div class="slider-row">
+        <label>Formula: <select id="formula-select">
+          <option value="linear">Linear</option>
+          <option value="exponential">Exponential</option>
+        </select></label>
+      </div>
+      <div id="formula-params"></div>
+      <h3>Base Costs</h3>
+      <div id="cost-sliders"></div>
+    </div>
+    <div class="chart-area">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+  <script type="module">
+import { loadConfigs, getConfigValue, setConfigValue, createSlider, createCopyButton, generateConfigSnippet, saveToUrl, loadFromUrl, CHART_COLORS } from "./vizShared.js";
+
+const UPGRADE_KEYS = ["maxHealth", "healthRegen", "fireRate", "xpGain", "pickupRange", "damage", "moveSpeed"];
+const UPGRADE_LABELS = { maxHealth: "Max Health", healthRegen: "Health Regen", fireRate: "Fire Rate", xpGain: "XP Gain", pickupRange: "Pickup Range", damage: "Damage", moveSpeed: "Move Speed" };
+const COLORS = [CHART_COLORS.cyan, CHART_COLORS.green, CHART_COLORS.purple, CHART_COLORS.yellow, CHART_COLORS.orange, CHART_COLORS.pink, CHART_COLORS.white];
+
+const FORMULA_PARAMS_KEYS = ["_formula", "_linearCoeff", "_expRate"];
+const COST_PATHS = UPGRADE_KEYS.map(key => `UPGRADE_VALUES.${key}.baseCost`);
+const ALL_URL_PATHS = [...COST_PATHS];
+
+const configs = await loadConfigs();
+
+const urlParams = new URLSearchParams(window.location.search);
+let currentFormula = urlParams.get("_formula") || "linear";
+let linearCoeff = Number(urlParams.get("_linearCoeff")) || 1;
+let expRate = Number(urlParams.get("_expRate")) || 1.5;
+
+const formulaSelect = document.getElementById("formula-select");
+formulaSelect.value = currentFormula;
+const formulaParams = document.getElementById("formula-params");
+const costSlidersDiv = document.getElementById("cost-sliders");
+
+function saveUrl() {
+  const params = new URLSearchParams();
+  params.set("_formula", currentFormula);
+  if (currentFormula === "linear") params.set("_linearCoeff", String(linearCoeff));
+  else params.set("_expRate", String(expRate));
+  for (const key of UPGRADE_KEYS) {
+    const baseCost = getConfigValue(configs, `UPGRADE_VALUES.${key}.baseCost`);
+    params.set(`UPGRADE_VALUES.${key}.baseCost`, String(baseCost));
+  }
+  window.history.replaceState(null, "", `?${params.toString()}`);
+}
+
+formulaSelect.addEventListener("change", () => {
+  currentFormula = formulaSelect.value;
+  updateFormulaParams();
+  saveUrl();
+  updateChart();
+});
+
+function updateFormulaParams() {
+  formulaParams.innerHTML = "";
+  if (currentFormula === "linear") {
+    createSlider(formulaParams, "Coefficient", 0.5, 3, 0.1, linearCoeff, "x", v => { linearCoeff = v; saveUrl(); updateChart(); });
+  } else {
+    createSlider(formulaParams, "Rate", 1.1, 3, 0.05, expRate, "x", v => { expRate = v; saveUrl(); updateChart(); });
+  }
+}
+
+for (const key of UPGRADE_KEYS) {
+  const path = `UPGRADE_VALUES.${key}.baseCost`;
+  const urlVal = urlParams.get(path);
+  if (urlVal !== null) setConfigValue(configs, path, Number(urlVal));
+  const baseCost = getConfigValue(configs, path);
+  createSlider(costSlidersDiv, UPGRADE_LABELS[key], 5, 50, 1, baseCost, "diamonds", v => {
+    setConfigValue(configs, path, v);
+    saveUrl();
+    updateChart();
+  });
+}
+
+createCopyButton(document.getElementById("controls"), () => {
+  let snippet = `// Cost formula: ${currentFormula}\n`;
+  if (currentFormula === "linear") snippet += `// coefficient: ${linearCoeff}\n`;
+  else snippet += `// rate: ${expRate}\n`;
+  snippet += generateConfigSnippet(configs, COST_PATHS);
+  return snippet;
+});
+
+    updateFormulaParams();
+
+    const ctx = document.getElementById("chart").getContext("2d");
+    const maxLevel = 20;
+    const levels = Array.from({ length: maxLevel }, (_, i) => i);
+
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: levels.map(l => `Lv ${l}`),
+        datasets: UPGRADE_KEYS.map((key, i) => ({
+          label: UPGRADE_LABELS[key],
+          data: [],
+          borderColor: COLORS[i],
+          fill: false,
+          tension: 0.1
+        }))
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } } },
+        scales: {
+          x: { title: { display: true, text: "Level", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "Cost (Diamonds)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+        }
+      }
+    });
+
+function updateChart() {
+  for (let i = 0; i < UPGRADE_KEYS.length; i++) {
+    const key = UPGRADE_KEYS[i];
+    const baseCost = getConfigValue(configs, `UPGRADE_VALUES.${key}.baseCost`);
+    const data = levels.map(level => {
+      if (currentFormula === "exponential") {
+        return Math.floor(baseCost * Math.pow(expRate, level));
+      }
+      return Math.floor(baseCost * (level + 1) * linearCoeff);
+    });
+    chart.data.datasets[i].data = data;
+  }
+  chart.update("none");
+}
+
+    updateChart();
+  </script>
+</body>
+</html>

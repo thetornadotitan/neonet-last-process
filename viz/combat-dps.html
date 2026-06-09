@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Combat DPS - Balance Viz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="viz.css">
+</head>
+<body>
+  <a class="back-link" href="index.html">&larr; Back</a>
+  <h1 class="page-title">Combat DPS</h1>
+  <div class="layout">
+    <div class="sidebar" id="controls">
+      <h3>Player Base</h3>
+      <div id="player-sliders"></div>
+      <h3>Weapon</h3>
+      <div id="weapon-sliders"></div>
+      <h3>Difficulty (affects damage)</h3>
+      <div id="diff-sliders"></div>
+    </div>
+    <div class="chart-area">
+      <canvas id="chart1"></canvas>
+      <canvas id="chart2" style="margin-top: 24px;"></canvas>
+    </div>
+  </div>
+  <script type="module">
+import { loadConfigs, getConfigValue, setConfigValue, createSlider, createCopyButton, generateConfigSnippet, saveToUrl, loadFromUrl, CHART_COLORS } from "./vizShared.js";
+
+const configs = await loadConfigs();
+
+const PLAYER_PATHS = [
+  { path: "PLAYER.baseHealth", label: "Base Health", min: 50, max: 200, step: 10 },
+  { path: "PLAYER.baseDamage", label: "Base Damage", min: 0.5, max: 3, step: 0.1 },
+  { path: "PLAYER.baseShotCooldown", label: "Shot Cooldown", min: 0.1, max: 0.5, step: 0.02 },
+  { path: "PLAYER.baseSpeed", label: "Move Speed", min: 150, max: 400, step: 10 }
+];
+
+const WEAPON_PATHS = [
+  { path: "WEAPONS.bulletSpeed", label: "Bullet Speed", min: 300, max: 800, step: 20 },
+  { path: "WEAPONS.targetingRange", label: "Targeting Range", min: 200, max: 900, step: 20 },
+  { path: "WEAPONS.bulletMaxLife", label: "Bullet Max Life", min: 1, max: 8, step: 0.5 }
+];
+
+const DIFF_PATHS = [
+  { path: "DIFFICULTY.timeDivisor", label: "Time Divisor", min: 100, max: 1200, step: 50 },
+  { path: "DIFFICULTY.damageScaleCoefficient", label: "Damage Scale Coeff", min: 0.5, max: 4, step: 0.25 }
+];
+
+const ALL_PATHS = [...PLAYER_PATHS, ...WEAPON_PATHS, ...DIFF_PATHS].map(s => s.path);
+
+loadFromUrl(configs, ALL_PATHS);
+
+function onSliderChange(path, v) {
+  setConfigValue(configs, path, v);
+  saveToUrl(configs, ALL_PATHS);
+  updateCharts();
+}
+
+for (const s of PLAYER_PATHS) createSlider(document.getElementById("player-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+for (const s of WEAPON_PATHS) createSlider(document.getElementById("weapon-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+for (const s of DIFF_PATHS) createSlider(document.getElementById("diff-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+
+    createCopyButton(document.getElementById("controls"), () => generateConfigSnippet(configs, ALL_PATHS));
+
+    const ctx1 = document.getElementById("chart1").getContext("2d");
+    const chart1 = new Chart(ctx1, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Base DPS (no upgrades)", data: [], borderColor: CHART_COLORS.cyan, fill: false, tension: 0.3 },
+          { label: "DPS with Difficulty Scale", data: [], borderColor: CHART_COLORS.orange, fill: false, tension: 0.3 },
+          { label: "DPS + 5 Lv Damage", data: [], borderColor: CHART_COLORS.pink, fill: false, tension: 0.3, borderDash: [5, 5] },
+          { label: "DPS + 10 Lv Damage", data: [], borderColor: CHART_COLORS.purple, fill: false, tension: 0.3, borderDash: [5, 5] }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "DPS Over Time", color: "#8899aa" } },
+        scales: {
+          x: { title: { display: true, text: "Time (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "DPS", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+        }
+      }
+    });
+
+    const ctx2 = document.getElementById("chart2").getContext("2d");
+    const chart2 = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Shot Cooldown", data: [], borderColor: CHART_COLORS.green, fill: false, tension: 0.2 },
+          { label: "Damage Per Shot", data: [], borderColor: CHART_COLORS.pink, fill: false, tension: 0.2, yAxisID: "y1" }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Fire Rate & Damage by Upgrade Level", color: "#8899aa" } },
+        scales: {
+          x: { title: { display: true, text: "Fire Rate Level", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "Cooldown (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y1: { position: "right", title: { display: true, text: "Damage", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+function updateCharts() {
+  const baseDmg = getConfigValue(configs, "PLAYER.baseDamage");
+  const baseCooldown = getConfigValue(configs, "PLAYER.baseShotCooldown");
+  const timeDiv = getConfigValue(configs, "DIFFICULTY.timeDivisor");
+  const dmgScaleCoeff = getConfigValue(configs, "DIFFICULTY.damageScaleCoefficient");
+
+  const timeLabels = Array.from({ length: 60 }, (_, i) => i * 10);
+  const baseDps = baseDmg / baseCooldown;
+  const diffScale = (t) => { const d = Math.log2(1 + t / timeDiv); return 1 + d * dmgScaleCoeff; };
+  const dpsWithDiff = timeLabels.map(t => (baseDmg * diffScale(t)) / baseCooldown);
+  const dpsWith5Lv = timeLabels.map(t => (baseDmg * (1 + 5 * 0.2) * diffScale(t)) / (baseCooldown / (1 + 0)));
+  const dpsWith10Lv = timeLabels.map(t => (baseDmg * (1 + 10 * 0.2) * diffScale(t)) / (baseCooldown / (1 + 0)));
+
+  chart1.data.labels = timeLabels.map(t => `${t}s`);
+  chart1.data.datasets[0].data = timeLabels.map(() => baseDps);
+  chart1.data.datasets[1].data = dpsWithDiff;
+  chart1.data.datasets[2].data = dpsWith5Lv;
+  chart1.data.datasets[3].data = dpsWith10Lv;
+  chart1.update("none");
+
+  const levels = Array.from({ length: 20 }, (_, i) => i);
+  const cooldowns = levels.map(l => baseCooldown / (1 + l * 0.08));
+  const damagePerShot = levels.map(l => baseDmg * (1 + l * 0.2));
+
+  chart2.data.labels = levels.map(l => `Lv ${l}`);
+  chart2.data.datasets[0].data = cooldowns;
+  chart2.data.datasets[1].data = damagePerShot;
+  chart2.update("none");
+}
+
+    updateCharts();
+  </script>
+</body>
+</html>

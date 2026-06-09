@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Economy - Balance Viz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="viz.css">
+</head>
+<body>
+  <a class="back-link" href="index.html">&larr; Back</a>
+  <h1 class="page-title">Economy</h1>
+  <div class="layout">
+    <div class="sidebar" id="controls">
+      <h3>XP Progression</h3>
+      <div id="xp-sliders"></div>
+      <h3>Diamond Rewards</h3>
+      <div id="reward-sliders"></div>
+      <h3>Gem Collection</h3>
+      <div id="gem-sliders"></div>
+    </div>
+    <div class="chart-area">
+      <canvas id="chart1"></canvas>
+      <canvas id="chart2" style="margin-top: 24px;"></canvas>
+    </div>
+  </div>
+  <script type="module">
+import { loadConfigs, getConfigValue, setConfigValue, createSlider, createCopyButton, generateConfigSnippet, saveToUrl, loadFromUrl, CHART_COLORS } from "./vizShared.js";
+
+const configs = await loadConfigs();
+
+const XP_PATHS = [
+  { path: "PROGRESSION.xpBase", label: "XP Base", min: 10, max: 50, step: 2 },
+  { path: "PROGRESSION.xpLevelMultiplier", label: "Level Multiplier", min: 1.0, max: 2.0, step: 0.05 },
+  { path: "PROGRESSION.levelUpChoices", label: "Choices per Level", min: 2, max: 5, step: 1 }
+];
+
+const REWARD_PATHS = [
+  { path: "PROGRESSION.diamondRewardScoreDivisor", label: "Score Divisor", min: 50, max: 200, step: 10 },
+  { path: "PROGRESSION.diamondRewardTimeDivisor", label: "Time Divisor", min: 10, max: 60, step: 5 }
+];
+
+const GEM_PATHS = [
+  { path: "PROGRESSION.gemRadius", label: "Gem Radius", min: 3, max: 12, step: 1 },
+  { path: "PROGRESSION.gemAttractSpeedMin", label: "Attract Speed Min", min: 100, max: 400, step: 20 },
+  { path: "PROGRESSION.gemAttractSpeedBonus", label: "Attract Speed Bonus", min: 100, max: 600, step: 20 }
+];
+
+const ALL_PATHS = [...XP_PATHS, ...REWARD_PATHS, ...GEM_PATHS].map(s => s.path);
+
+loadFromUrl(configs, ALL_PATHS);
+
+function onSliderChange(path, v) {
+  setConfigValue(configs, path, v);
+  saveToUrl(configs, ALL_PATHS);
+  updateCharts();
+}
+
+for (const s of XP_PATHS) createSlider(document.getElementById("xp-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+for (const s of REWARD_PATHS) createSlider(document.getElementById("reward-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+for (const s of GEM_PATHS) createSlider(document.getElementById("gem-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+
+    createCopyButton(document.getElementById("controls"), () => generateConfigSnippet(configs, ALL_PATHS));
+
+    const ctx1 = document.getElementById("chart1").getContext("2d");
+    const chart1 = new Chart(ctx1, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "XP Required", data: [], borderColor: CHART_COLORS.green, fill: false, tension: 0.2 },
+          { label: "Cumulative XP", data: [], borderColor: CHART_COLORS.purple, fill: false, tension: 0.2, borderDash: [5, 5] }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "XP Progression Curve", color: "#8899aa" } },
+        scales: {
+          x: { title: { display: true, text: "Level", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "XP", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+        }
+      }
+    });
+
+    const ctx2 = document.getElementById("chart2").getContext("2d");
+    const chart2 = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Diamonds from Score", data: [], borderColor: CHART_COLORS.cyan, fill: false, tension: 0.2 },
+          { label: "Diamonds from Time", data: [], borderColor: CHART_COLORS.orange, fill: false, tension: 0.2 },
+          { label: "Total Diamonds", data: [], borderColor: CHART_COLORS.yellow, fill: true, backgroundColor: CHART_COLORS.yellow + "22", tension: 0.2 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Diamond Income Over Time", color: "#8899aa" } },
+        scales: {
+          x: { title: { display: true, text: "Time (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "Diamonds", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+        }
+      }
+    });
+
+function updateCharts() {
+  const xpBase = getConfigValue(configs, "PROGRESSION.xpBase");
+  const xpMult = getConfigValue(configs, "PROGRESSION.xpLevelMultiplier");
+
+  const maxLevels = 30;
+  const levels = Array.from({ length: maxLevels }, (_, i) => i + 1);
+  const xpRequired = levels.map(l => Math.floor(xpBase * l * xpMult));
+  const cumulative = xpRequired.reduce((acc, v) => { acc.push((acc.length ? acc[acc.length - 1] : 0) + v); return acc; }, []);
+
+  chart1.data.labels = levels.map(l => `Lv ${l}`);
+  chart1.data.datasets[0].data = xpRequired;
+  chart1.data.datasets[1].data = cumulative;
+  chart1.update("none");
+
+  const scoreDiv = getConfigValue(configs, "PROGRESSION.diamondRewardScoreDivisor");
+  const timeDiv = getConfigValue(configs, "PROGRESSION.diamondRewardTimeDivisor");
+
+  const timeLabels = Array.from({ length: 30 }, (_, i) => (i + 1) * 30);
+  const scorePer30s = 100;
+  const fromScore = timeLabels.map(t => Math.floor((t / 30 * scorePer30s) / scoreDiv));
+  const fromTime = timeLabels.map(t => Math.floor(t / timeDiv));
+  const total = timeLabels.map((t, i) => fromScore[i] + fromTime[i]);
+
+  chart2.data.labels = timeLabels.map(t => `${t}s`);
+  chart2.data.datasets[0].data = fromScore;
+  chart2.data.datasets[1].data = fromTime;
+  chart2.data.datasets[2].data = total;
+  chart2.update("none");
+}
+
+    updateCharts();
+  </script>
+</body>
+</html>

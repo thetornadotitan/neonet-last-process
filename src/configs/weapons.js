@@ -1,0 +1,17 @@
+export const WEAPONS = {
+  bulletSpeed: { value: 570, unit: "px/s" },
+  bulletRadius: { value: 5, unit: "px" },
+  targetingRange: { value: 620, unit: "px" },
+  spawnOffset: { value: 22, unit: "px" },
+  bulletMaxLife: { value: 4, unit: "s" },
+  frontShotSpacing: { value: 9, unit: "px" },
+  multishotBaseAngle: { value: 0.18, unit: "rad" },
+  multishotAngleStep: { value: 0.06, unit: "rad" },
+  diagonalBaseAngle: { value: Math.PI / 4, unit: "rad" },
+  diagonalAngleStep: { value: 0.08, unit: "rad" },
+  reverseShotSpacing: { value: 8, unit: "px" },
+  bounceSearchRange: { value: 420, unit: "px" },
+  homingStrengthPerLevel: { value: 0.8, unit: "x" },
+  homingTurnRateMultiplier: { value: 4, unit: "x" },
+  homingSearchRange: { value: 500, unit: "px" },
+};
