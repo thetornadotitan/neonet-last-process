@@ -117,17 +117,17 @@ export const UPGRADES = {
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      return `+${Math.floor(level * this.effectPerLevel)} bounces`;
+      return `+${level} bounces`;
     }
   },
   multishot: {
     key: "multishot",
     label: "Multishot",
-    unit: "+1 projectile",
+    unit: "+1 shot per volley",
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      return `+${Math.floor(level * this.effectPerLevel)} side projectiles`;
+      return `+${level} extra shots per volley`;
     }
   },
   frontShot: {
@@ -137,7 +137,7 @@ export const UPGRADES = {
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      return `+${Math.floor(level * this.effectPerLevel)} forward projectiles`;
+      return `+${level} forward projectiles`;
     }
   },
   diagonalShot: {
@@ -147,7 +147,7 @@ export const UPGRADES = {
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      return `+${Math.floor(level * this.effectPerLevel) * 2} diagonal projectiles`;
+      return `+${level * 2} diagonal projectiles`;
     }
   },
   reverseShot: {
@@ -157,7 +157,7 @@ export const UPGRADES = {
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      return `+${Math.floor(level * this.effectPerLevel)} rear projectiles`;
+      return `+${level} rear projectiles`;
     }
   },
   homing: {
@@ -167,8 +167,8 @@ export const UPGRADES = {
     effectPerLevel: 1,
     permanent: false,
     describe(level) {
-      const strengths = ["Weak", "Moderate", "Strong", "Perfect"];
-      return `Homing: ${strengths[Math.min(Math.floor(level), strengths.length - 1)]}`;
+      const strengths = ["Weak", "Moderate", "Strong", "Perfect", "Omniscient"];
+      return `Homing: ${strengths[Math.min(level - 1, strengths.length - 1)]}`;
     }
   }
 };

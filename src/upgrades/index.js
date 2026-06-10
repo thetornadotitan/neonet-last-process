@@ -18,7 +18,8 @@ export {
   xpMultiplierFor,
   pickupRangeFor,
   damageFor,
-  moveSpeedFor
+  moveSpeedFor,
+  multishotBurstDelayFor
 } from "./stats.js";
 
 export {
@@ -26,13 +27,21 @@ export {
   enemyHealthScale,
   damageScale,
   enemySpeedScale,
+  enemyContactDamageScale,
   spawnDelayFor
 } from "./difficulty.js";
 
 export {
   EXTRA_SHOT_UPGRADES,
   isExtraShotUpgrade,
+  extraShotLevelForRarity,
+  extraShotLevel,
   getSelectedExtraShots,
   getHighestExtraShotRarity,
   filterUpgradeChoices
 } from "./extraShotFilters.js";
+
+export {
+  playerDps, playerEhp, playerUtility, playerPower,
+  enemyEhp, enemyDps, spawnPower, enemyPower
+} from "./power.js";

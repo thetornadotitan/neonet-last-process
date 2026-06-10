@@ -42,3 +42,11 @@ export const UPGRADE_VALUES = {
     costFormulaParams: { coefficient: 1 },
   },
 };
+
+export const EXTRA_SHOT_RARITY_LEVELS = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  legendary: 4,
+  mythic: 5,
+};

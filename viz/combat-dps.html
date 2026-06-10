@@ -43,8 +43,9 @@ const WEAPON_PATHS = [
 ];
 
 const DIFF_PATHS = [
-  { path: "DIFFICULTY.timeDivisor", label: "Time Divisor", min: 100, max: 1200, step: 50 },
-  { path: "DIFFICULTY.damageScaleCoefficient", label: "Damage Scale Coeff", min: 0.5, max: 4, step: 0.25 }
+  { path: "DIFFICULTY.halfTime", label: "Half Time", min: 60, max: 900, step: 30 },
+  { path: "DIFFICULTY.exponent", label: "Exponent", min: 1.0, max: 3.0, step: 0.1 },
+  { path: "DIFFICULTY.damageScaleCoefficient", label: "Damage Scale Coeff", min: 0.1, max: 4, step: 0.1 }
 ];
 
 const ALL_PATHS = [...PLAYER_PATHS, ...WEAPON_PATHS, ...DIFF_PATHS].map(s => s.path);
@@ -109,12 +110,13 @@ for (const s of DIFF_PATHS) createSlider(document.getElementById("diff-sliders")
 function updateCharts() {
   const baseDmg = getConfigValue(configs, "PLAYER.baseDamage");
   const baseCooldown = getConfigValue(configs, "PLAYER.baseShotCooldown");
-  const timeDiv = getConfigValue(configs, "DIFFICULTY.timeDivisor");
+  const halfTime = getConfigValue(configs, "DIFFICULTY.halfTime");
+  const exponent = getConfigValue(configs, "DIFFICULTY.exponent");
   const dmgScaleCoeff = getConfigValue(configs, "DIFFICULTY.damageScaleCoefficient");
 
   const timeLabels = Array.from({ length: 60 }, (_, i) => i * 10);
   const baseDps = baseDmg / baseCooldown;
-  const diffScale = (t) => { const d = Math.log2(1 + t / timeDiv); return 1 + d * dmgScaleCoeff; };
+  const diffScale = (t) => { const d = t <= 0 ? 0 : Math.pow(t / halfTime, exponent); return 1 + d * dmgScaleCoeff; };
   const dpsWithDiff = timeLabels.map(t => (baseDmg * diffScale(t)) / baseCooldown);
   const dpsWith5Lv = timeLabels.map(t => (baseDmg * (1 + 5 * 0.2) * diffScale(t)) / (baseCooldown / (1 + 0)));
   const dpsWith10Lv = timeLabels.map(t => (baseDmg * (1 + 10 * 0.2) * diffScale(t)) / (baseCooldown / (1 + 0)));

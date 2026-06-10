@@ -12,76 +12,112 @@
   <h1 class="page-title">Difficulty Scaling</h1>
   <div class="layout">
     <div class="sidebar" id="controls">
-      <h3>Difficulty Params</h3>
+      <h3>Curve Shape</h3>
+      <div id="curve-sliders"></div>
+      <h3>Scaling Coefficients</h3>
+      <div id="coeff-sliders"></div>
+      <h3>Spawn & Speed</h3>
+      <div id="spawn-sliders"></div>
     </div>
     <div class="chart-area">
-      <canvas id="chart"></canvas>
+      <canvas id="chart1"></canvas>
+      <canvas id="chart2" style="margin-top: 24px;"></canvas>
     </div>
   </div>
   <script type="module">
     import { loadConfigs, getConfigValue, setConfigValue, createSlider, createCopyButton, generateConfigSnippet, saveToUrl, loadFromUrl, CHART_COLORS } from "./vizShared.js";
 
-    const SLIDER_PATHS = [
-      { path: "DIFFICULTY.timeDivisor", label: "Time Divisor", min: 100, max: 1200, step: 50 },
-      { path: "DIFFICULTY.enemyHealthCoefficient", label: "Health Coefficient", min: 0.5, max: 6, step: 0.25 },
-      { path: "DIFFICULTY.damageScaleCoefficient", label: "Damage Scale Coeff", min: 0.5, max: 4, step: 0.25 },
-      { path: "DIFFICULTY.enemySpeedCoefficient", label: "Speed Coefficient", min: 0.1, max: 1, step: 0.05 },
+    const CURVE_PATHS = [
+      { path: "DIFFICULTY.halfTime", label: "Half Time", min: 60, max: 900, step: 30 },
+      { path: "DIFFICULTY.exponent", label: "Exponent", min: 1.0, max: 3.0, step: 0.1 }
+    ];
+
+    const COEFF_PATHS = [
+      { path: "DIFFICULTY.enemyHealthCoefficient", label: "Health Coeff", min: 0.5, max: 10, step: 0.5 },
+      { path: "DIFFICULTY.damageScaleCoefficient", label: "Dmg Scale Coeff", min: 0.1, max: 4, step: 0.1 },
+      { path: "DIFFICULTY.enemyContactDamageCoefficient", label: "Contact Dmg Coeff", min: 0, max: 5, step: 0.25 }
+    ];
+
+    const SPAWN_PATHS = [
+      { path: "DIFFICULTY.enemySpeedCoefficient", label: "Speed Coeff", min: 0.1, max: 1, step: 0.05 },
       { path: "DIFFICULTY.enemySpeedCap", label: "Speed Cap", min: 0.5, max: 3, step: 0.1 },
       { path: "DIFFICULTY.spawnDelayStart", label: "Spawn Delay Start", min: 0.3, max: 2, step: 0.05 },
       { path: "DIFFICULTY.spawnDelayRate", label: "Spawn Delay Rate", min: 0.001, max: 0.03, step: 0.001 },
       { path: "DIFFICULTY.spawnDelayMin", label: "Spawn Delay Min", min: 0.05, max: 0.5, step: 0.01 }
     ];
 
-    const configs = await loadConfigs();
-    loadFromUrl(configs, SLIDER_PATHS.map(s => s.path));
+    const ALL_PATHS = [...CURVE_PATHS, ...COEFF_PATHS, ...SPAWN_PATHS].map(s => s.path);
 
-    const controls = document.getElementById("controls");
-    const sliders = {};
-    for (const s of SLIDER_PATHS) {
-      const val = getConfigValue(configs, s.path);
-      const unit = "";
-      sliders[s.path] = createSlider(controls, s.label, s.min, s.max, s.step, val, unit, (v) => {
-        setConfigValue(configs, s.path, v);
-        saveToUrl(configs, SLIDER_PATHS.map(s => s.path));
-        updateChart();
-      });
+    const configs = await loadConfigs();
+    loadFromUrl(configs, ALL_PATHS);
+
+    function onSliderChange(path, v) {
+      setConfigValue(configs, path, v);
+      saveToUrl(configs, ALL_PATHS);
+      updateCharts();
     }
-    createCopyButton(controls, () => generateConfigSnippet(configs, SLIDER_PATHS.map(s => s.path)));
+
+    for (const s of CURVE_PATHS) createSlider(document.getElementById("curve-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+    for (const s of COEFF_PATHS) createSlider(document.getElementById("coeff-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+    for (const s of SPAWN_PATHS) createSlider(document.getElementById("spawn-sliders"), s.label, s.min, s.max, s.step, getConfigValue(configs, s.path), "", v => onSliderChange(s.path, v));
+
+    createCopyButton(document.getElementById("controls"), () => generateConfigSnippet(configs, ALL_PATHS));
 
     function difficultyFor(time) {
       if (time <= 0) return 0;
-      return Math.log2(1 + time / getConfigValue(configs, "DIFFICULTY.timeDivisor"));
+      const halfTime = getConfigValue(configs, "DIFFICULTY.halfTime");
+      const exponent = getConfigValue(configs, "DIFFICULTY.exponent");
+      return Math.pow(time / halfTime, exponent);
     }
 
-    const ctx = document.getElementById("chart").getContext("2d");
-    const timeLabels = Array.from({ length: 60 }, (_, i) => i * 10);
+    const timeLabels = Array.from({ length: 90 }, (_, i) => i * 10);
 
-    const chart = new Chart(ctx, {
+    const ctx1 = document.getElementById("chart1").getContext("2d");
+    const chart1 = new Chart(ctx1, {
       type: "line",
       data: {
         labels: timeLabels.map(t => `${t}s`),
         datasets: [
           { label: "Difficulty", data: [], borderColor: CHART_COLORS.white, fill: false, tension: 0.3 },
           { label: "Enemy Health Scale", data: [], borderColor: CHART_COLORS.pink, fill: false, tension: 0.3 },
-          { label: "Damage Scale", data: [], borderColor: CHART_COLORS.orange, fill: false, tension: 0.3 },
-          { label: "Enemy Speed Scale", data: [], borderColor: CHART_COLORS.yellow, fill: false, tension: 0.3, yAxisID: "y1" },
-          { label: "Spawn Delay (s)", data: [], borderColor: CHART_COLORS.green, fill: false, tension: 0.3, yAxisID: "y1" }
+          { label: "Damage Scale (player)", data: [], borderColor: CHART_COLORS.orange, fill: false, tension: 0.3 },
+          { label: "Contact Dmg Scale", data: [], borderColor: CHART_COLORS.purple, fill: false, tension: 0.3, borderDash: [5, 5] }
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: "#8899aa" } } },
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Difficulty & Scaling Multipliers", color: "#8899aa" } },
         scales: {
           x: { title: { display: true, text: "Time (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
-          y: { title: { display: true, text: "Multiplier", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
-          y1: { position: "right", title: { display: true, text: "Seconds / Scale", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { drawOnChartArea: false } }
+          y: { title: { display: true, text: "Multiplier", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
         }
       }
     });
 
-    function updateChart() {
+    const ctx2 = document.getElementById("chart2").getContext("2d");
+    const chart2 = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: timeLabels.map(t => `${t}s`),
+        datasets: [
+          { label: "Enemy Speed Scale", data: [], borderColor: CHART_COLORS.yellow, fill: false, tension: 0.3 },
+          { label: "Spawn Delay (s)", data: [], borderColor: CHART_COLORS.green, fill: false, tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#8899aa" } }, title: { display: true, text: "Enemy Speed & Spawn Rate", color: "#8899aa" } },
+        scales: {
+          x: { title: { display: true, text: "Time (s)", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } },
+          y: { title: { display: true, text: "Value", color: "#8899aa" }, ticks: { color: "#8899aa" }, grid: { color: "#1a2040" } }
+        }
+      }
+    });
+
+    function updateCharts() {
       const hc = getConfigValue(configs, "DIFFICULTY.enemyHealthCoefficient");
       const dc = getConfigValue(configs, "DIFFICULTY.damageScaleCoefficient");
+      const cc = getConfigValue(configs, "DIFFICULTY.enemyContactDamageCoefficient");
       const sc = getConfigValue(configs, "DIFFICULTY.enemySpeedCoefficient");
       const cap = getConfigValue(configs, "DIFFICULTY.enemySpeedCap");
       const ds = getConfigValue(configs, "DIFFICULTY.spawnDelayStart");
@@ -91,18 +127,22 @@
       const diff = timeLabels.map(t => difficultyFor(t));
       const healthScale = diff.map(d => 1 + d * hc);
       const dmgScale = diff.map(d => 1 + d * dc);
+      const contactScale = diff.map(d => 1 + d * cc);
       const speedScale = diff.map(d => 1 + Math.min(d * sc, cap));
       const spawnDelay = timeLabels.map(t => Math.max(dm, Math.min(ds, ds - t * dr)));
 
-      chart.data.datasets[0].data = diff;
-      chart.data.datasets[1].data = healthScale;
-      chart.data.datasets[2].data = dmgScale;
-      chart.data.datasets[3].data = speedScale;
-      chart.data.datasets[4].data = spawnDelay;
-      chart.update("none");
+      chart1.data.datasets[0].data = diff;
+      chart1.data.datasets[1].data = healthScale;
+      chart1.data.datasets[2].data = dmgScale;
+      chart1.data.datasets[3].data = contactScale;
+      chart1.update("none");
+
+      chart2.data.datasets[0].data = speedScale;
+      chart2.data.datasets[1].data = spawnDelay;
+      chart2.update("none");
     }
 
-    updateChart();
+    updateCharts();
   </script>
 </body>
 </html>

@@ -30,6 +30,7 @@ export class CombatScene {
       score: 0,
       spawnTimer: 0,
       shotTimer: 0,
+      burstState: { shotsRemaining: 0, burstDelay: 0 },
       nextEnemyId: 1,
       shake: 0,
       reward: 0,

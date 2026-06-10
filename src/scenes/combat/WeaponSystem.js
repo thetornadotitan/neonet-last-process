@@ -1,12 +1,46 @@
 import { clamp, distanceSquared, normalize, TWO_PI } from "../../utils.js";
-import { damageFor, damageScale, shotCooldownFor, wholeUpgradeLevel } from "../../upgrades/index.js";
+import { damageFor, damageScale, shotCooldownFor, multishotBurstDelayFor, extraShotLevel } from "../../upgrades/index.js";
 import { WEAPONS, PARTICLES } from "../../configs/index.js";
 
 export class WeaponSystem {
   update(run, meta, dt) {
+    if (run.burstState.shotsRemaining > 0) {
+      run.burstState.burstDelay -= dt;
+      if (run.burstState.burstDelay <= 0) {
+        const nearest = this.findNearest(run);
+        if (nearest) {
+          const aim = normalize(nearest.x - run.player.x, nearest.y - run.player.y);
+          this.firePattern(run, meta, aim);
+        }
+        run.burstState.shotsRemaining -= 1;
+        if (run.burstState.shotsRemaining > 0) {
+          run.burstState.burstDelay = multishotBurstDelayFor(meta, run);
+        }
+      }
+      return;
+    }
+
     run.shotTimer -= dt;
     if (run.shotTimer > 0) return;
 
+    const nearest = this.findNearest(run);
+    if (nearest) {
+      const aim = normalize(nearest.x - run.player.x, nearest.y - run.player.y);
+      const multishot = extraShotLevel(run, "multishot");
+      const burstCount = 1 + multishot;
+
+      this.firePattern(run, meta, aim);
+
+      if (burstCount > 1) {
+        run.burstState.shotsRemaining = burstCount - 1;
+        run.burstState.burstDelay = multishotBurstDelayFor(meta, run);
+      }
+    }
+
+    run.shotTimer = shotCooldownFor(meta, run);
+  }
+
+  findNearest(run) {
     let nearest = null;
     let nearestDistance = Infinity;
     const range = WEAPONS.targetingRange.value;
@@ -19,30 +53,18 @@ export class WeaponSystem {
       }
     }
 
-    if (nearest) {
-      const aim = normalize(nearest.x - run.player.x, nearest.y - run.player.y);
-      this.firePattern(run, meta, aim);
-    }
-
-    run.shotTimer = shotCooldownFor(meta, run);
+    return nearest;
   }
 
   firePattern(run, meta, aim) {
-    const front = wholeUpgradeLevel(meta, run, "frontShot");
-    const multishot = wholeUpgradeLevel(meta, run, "multishot");
-    const diagonal = wholeUpgradeLevel(meta, run, "diagonalShot");
-    const reverse = wholeUpgradeLevel(meta, run, "reverseShot");
+    const front = extraShotLevel(run, "frontShot");
+    const diagonal = extraShotLevel(run, "diagonalShot");
+    const reverse = extraShotLevel(run, "reverseShot");
 
     this.spawnBullet(run, meta, aim);
 
     for (let i = 0; i < front; i += 1) {
       this.spawnBullet(run, meta, aim, 0, (i + 1) * WEAPONS.frontShotSpacing.value);
-    }
-
-    for (let i = 0; i < multishot; i += 1) {
-      const side = i % 2 === 0 ? -1 : 1;
-      const step = Math.floor(i / 2) + 1;
-      this.spawnBullet(run, meta, this.rotateVector(aim, side * (WEAPONS.multishotBaseAngle.value + step * WEAPONS.multishotAngleStep.value)));
     }
 
     for (let i = 0; i < diagonal; i += 1) {
@@ -59,7 +81,7 @@ export class WeaponSystem {
   spawnBullet(run, meta, direction, angleOffset = 0, sideOffset = 0) {
     const aim = angleOffset === 0 ? direction : this.rotateVector(direction, angleOffset);
     const perpendicular = { x: -aim.y, y: aim.x };
-    const homing = wholeUpgradeLevel(meta, run, "homing");
+    const homing = extraShotLevel(run, "homing");
 
     run.bullets.push({
       x: run.player.x + aim.x * WEAPONS.spawnOffset.value + perpendicular.x * sideOffset,
@@ -68,7 +90,7 @@ export class WeaponSystem {
       vy: aim.y * WEAPONS.bulletSpeed.value,
       radius: WEAPONS.bulletRadius.value,
       damage: damageFor(meta, run) * damageScale(run.time),
-      bouncesLeft: wholeUpgradeLevel(meta, run, "projectileBounce"),
+      bouncesLeft: extraShotLevel(run, "projectileBounce"),
       hitEnemyIds: new Set(),
       maxLife: WEAPONS.bulletMaxLife.value,
       age: 0,

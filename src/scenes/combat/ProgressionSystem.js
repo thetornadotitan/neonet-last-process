@@ -1,6 +1,6 @@
 import {
   UPGRADE_KEYS, makeUpgradeLevels, maxHealthFor, pickupRangeFor,
-  xpMultiplierFor, rollRarity, isExtraShotUpgrade, filterUpgradeChoices
+  xpMultiplierFor, rollRarity, isExtraShotUpgrade, extraShotLevelForRarity, filterUpgradeChoices
 } from "../../upgrades/index.js";
 import { distanceSquared, normalize } from "../../utils.js";
 import { PROGRESSION, CAMERA, PARTICLES } from "../../configs/index.js";
@@ -56,7 +56,7 @@ export class ProgressionSystem {
     const { key, rarity } = choice;
 
     if (isExtraShotUpgrade(key)) {
-      run.temporaryUpgrades[key] = rarity.multiplier;
+      run.temporaryUpgrades[key] = extraShotLevelForRarity(rarity.key);
       run.extraShotRarities[key] = rarity.key;
       run.selectedExtraShots.add(key);
     } else {

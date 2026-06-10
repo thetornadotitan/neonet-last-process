@@ -1,5 +1,6 @@
 import { distanceSquared, normalize } from "../../utils.js";
 import { PLAYER, WEAPONS, CAMERA, PARTICLES, PROGRESSION } from "../../configs/index.js";
+import { enemyContactDamageScale } from "../../upgrades/index.js";
 
 export class CombatResolver {
   resolve(run, meta, burstFn, bounceFn) {
@@ -32,10 +33,11 @@ export class CombatResolver {
 
   resolvePlayerCollisions(run, meta, burstFn) {
     const player = run.player;
+    const contactDmg = Math.round(PLAYER.contactDamage.value * enemyContactDamageScale(run.time));
     for (const enemy of run.enemies) {
       const radius = player.radius + enemy.radius;
       if (distanceSquared(player, enemy) <= radius * radius && player.invulnerable <= 0) {
-        player.health -= PLAYER.contactDamage.value;
+        player.health -= contactDmg;
         player.invulnerable = PLAYER.invulnerableDuration.value;
         if (meta.settings.screenShake) run.shake = CAMERA.shakeIntensityOnHit.value;
         burstFn(player.x, player.y, "#00e0ff", PARTICLES.playerHitParticleCount.value);

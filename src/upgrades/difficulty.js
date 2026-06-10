@@ -3,7 +3,8 @@ import { DIFFICULTY } from "../configs/index.js";
 
 export function difficultyFor(time) {
   if (time <= 0) return 0;
-  return Math.log2(1 + time / DIFFICULTY.timeDivisor.value);
+  const ratio = time / DIFFICULTY.halfTime.value;
+  return Math.pow(ratio, DIFFICULTY.exponent.value);
 }
 
 export function enemyHealthScale(time) {
@@ -16,6 +17,10 @@ export function damageScale(time) {
 
 export function enemySpeedScale(time) {
   return 1 + clamp(difficultyFor(time) * DIFFICULTY.enemySpeedCoefficient.value, 0, DIFFICULTY.enemySpeedCap.value);
+}
+
+export function enemyContactDamageScale(time) {
+  return 1 + difficultyFor(time) * DIFFICULTY.enemyContactDamageCoefficient.value;
 }
 
 export function spawnDelayFor(time) {

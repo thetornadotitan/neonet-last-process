@@ -2,7 +2,7 @@ export async function loadConfigs() {
   const configs = {};
   const modules = [
     "player", "enemies", "weapons", "difficulty",
-    "upgrades", "rarity", "progression", "camera", "particles", "hub", "engine"
+    "upgrades", "rarity", "progression", "camera", "particles", "hub", "engine", "power"
   ];
   for (const name of modules) {
     try {
@@ -98,7 +98,8 @@ export function createSlider(container, label, min, max, step, value, unit, onCh
 
   const valueEl = document.createElement("span");
   valueEl.className = "slider-value";
-  valueEl.textContent = step < 1 ? `${value.toFixed(2)} ${unit}` : `${value} ${unit}`;
+  const displayVal = (value != null && typeof value === "number") ? (step < 1 ? value.toFixed(2) : String(value)) : "—";
+  valueEl.textContent = `${displayVal} ${unit}`;
 
   const input = document.createElement("input");
   input.type = "range";
@@ -109,7 +110,8 @@ export function createSlider(container, label, min, max, step, value, unit, onCh
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
-    valueEl.textContent = step < 1 ? `${v.toFixed(2)} ${unit}` : `${v} ${unit}`;
+    const dv = step < 1 ? v.toFixed(2) : String(v);
+    valueEl.textContent = `${dv} ${unit}`;
     onChange(v);
   });
 

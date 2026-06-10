@@ -1,5 +1,5 @@
 import { formatTime } from "./utils.js";
-import { PERMANENT_UPGRADE_KEYS, UPGRADE_KEYS, UPGRADES, RARITIES, upgradeCost, isExtraShotUpgrade } from "./upgrades/index.js";
+import { PERMANENT_UPGRADE_KEYS, UPGRADE_KEYS, UPGRADES, RARITIES, upgradeCost, isExtraShotUpgrade, extraShotLevelForRarity } from "./upgrades/index.js";
 
 export class UI {
   constructor(store, audioManager) {
@@ -217,10 +217,11 @@ export class UI {
       button.type = "button";
       button.className = `level-option${index === this.levelSelection ? " selected" : ""}`;
       button.style.setProperty("--rarity-color", rarity.color);
+      const multiplierDisplay = isExtraShotUpgrade(choice.key) ? extraShotLevelForRarity(rarity.key) : rarity.multiplier;
       button.innerHTML = `
         <div>
           <h3>${upgrade.label}</h3>
-          <p><span class="rarity-label">${rarity.label}</span> ${upgrade.unit} x ${rarity.multiplier}</p>
+          <p><span class="rarity-label">${rarity.label}</span> ${upgrade.unit} x ${multiplierDisplay}</p>
         </div>
       `;
       button.addEventListener("click", () => {

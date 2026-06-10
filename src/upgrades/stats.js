@@ -1,4 +1,4 @@
-import { PLAYER, UPGRADE_VALUES } from "../configs/index.js";
+import { PLAYER, UPGRADE_VALUES, WEAPONS } from "../configs/index.js";
 import { UPGRADES, totalUpgradeLevel } from "./definitions.js";
 
 export function maxHealthFor(meta, run) {
@@ -28,4 +28,9 @@ export function damageFor(meta, run) {
 
 export function moveSpeedFor(meta, run) {
   return PLAYER.baseSpeed.value * (1 + totalUpgradeLevel(meta, run, "moveSpeed") * UPGRADES.moveSpeed.effectPerLevel);
+}
+
+export function multishotBurstDelayFor(meta, run) {
+  const cooldown = shotCooldownFor(meta, run);
+  return Math.max(cooldown * WEAPONS.multishotBurstDelayPercent.value, WEAPONS.multishotBurstDelayFloor.value);
 }
